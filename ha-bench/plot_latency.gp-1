@@ -1,0 +1,16 @@
+set terminal pngcairo size 1000,600 font "Arial,10"
+set output 'latency_graph.png'
+
+set title "Распределение задержек (Latency Distribution)"
+set xlabel "Процентили (логарифмическая шкала)"
+set ylabel "Задержка (ms)"
+
+set grid xtics ytics
+set logscale x
+
+# Настройка подписей для оси X (используем колонку invtail)
+set xtics ( "50%" 2, "90%" 10, "99%" 100, "99.9%" 1000, "99.99%" 10000, "99.999%" 100000 )
+
+# Рисуем линию TTFB (колонка 5) относительно invtail (колонка 3)
+plot "latency.dat" using 3:5 with linespoints title "TTFB (ms)" lw 2 pt 7
+

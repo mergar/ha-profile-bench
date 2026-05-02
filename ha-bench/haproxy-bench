@@ -1,0 +1,87 @@
+#!/bin/sh
+#taskset --cpu-list 4-31 h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P https://100.77.64.2:8080
+#h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P http://127.0.0.1:80/index.html
+
+man()
+{
+cat<<EOF
+Usage: h1load [option]* URL
+
+The following arguments are supported :
+  -d <time>          test duration in seconds (0)
+  -c <conn>          concurrent connections (1)
+  -n <reqs>          maximum total requests (-1)
+  -r <reqs>          number of requests per connection (-1)
+  -s <time>          soft start: time in sec to reach 100% load
+  -t <threads>       number of threads to create (1) ; 0 = auto
+  -w <time>          I/O timeout in milliseconds (-1)
+  -T <time>          think time in ms after a response (0)
+  -R <rate>          limite to this many request attempts per second (0)
+  -H "foo:bar"       adds this header name and value
+  -O extra/payload   overhead: #extra bytes per payload size
+  -l                 enable long output format; double for raw values
+  -A                 ignore 1st req for resp time measurements
+  -P                 report ttfb/ttlb percentiles at the end
+  -e                 stop upon first connection error
+  -F                 merge send() with connect's ACK
+  -I                 use HEAD instead of GET
+  -S                 show HTTP status codes distribution
+  -h                 display this help
+  -v                 increase verbosity
+  --debug            show some debug info (req to be sent etc)
+SSL options:
+  --cipher-list <cipher list>                   for TLSv1.2 and below
+  --tls-reuse                                   enable SSL session reuse
+  --tls-ver SSL3|TLS1.0|TLS1.1|TLS1.2|TLS1.3    force TLS protocol version
+EOF
+}
+
+#h1load -d 60 -s 60 -R 12 -n -1 -c 1 -t 1 -v -l -S -P http://127.0.0.1:80/index.html
+
+
+#h1load -d 60 -t 6 -c 300 -r 1000 -P -S -l http://127.0.0.1:80/index.html > output.log
+truncate -s0 output.log
+
+cpuset -l 3 h1load -d 600 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:80/index.html | tee -a  output.log
+#cpuset -l 3 h1load -d 60 -t 1 -c 600 -r 1000 -P -S -l http://127.0.0.1:80/index.html | tee -a  output.log
+
+
+cat<<EOF
+Разбор ключевых параметров для теста на RPS:
+
+    -t 6 (Threads): Самый важный параметр. Мы создаем 6 потоков, чтобы полностью загрузить все 6 ядер вашего CPU.
+    -c 300 (Concurrent connections): Увеличиваем количество параллельных соединений. Для максимального RPS обычно требуется от 50 до нескольких сотен соединений, чтобы «забить» канал и не ждать ответа от сервера на одном сокете. (По 50 на поток в данном примере).
+    -r 1000 (Requests per connection): Критично для RPS. Вместо того чтобы закрывать соединение после каждого запроса, мы отправляем 1000 запросов внутри одного TCP-соединения (Keep-Alive). Это убирает нагрузку на CPU, связанную с постоянным открытием/закрытием сокетов (TCP handshake).
+    Удаление -R 12: Мы убираем лимит частоты запросов, чтобы утилита работала на пределе возможностей.
+    Удаление -s 60: Soft start не нужен, если мы хотим сразу выйти на пиковую мощность (хотя для прогрева кэшей Nginx можно оставить небольшое значение, например -s 5).
+    Удаление -v: Лишний вывод в консоль (verbosity) потребляет ресурсы CPU и может снизить производительность самого тестера.
+
+Советы по оптимизации Nginx:
+Чтобы Nginx не стал бутылочным горлышком раньше времени, убедитесь, что в конфиге:
+
+    worker_processes auto; (или 6).
+    keepalive_requests установлен в большое значение (например, 10000), чтобы соответствовать параметру -r в h1load.
+    worker_connections достаточно велик (минимум 1024).
+
+Хотите ли вы также проверить максимальное количество новых соединений в секунду (CPS), или фокус именно на «чистом» RPS внутри открытых сессий?
+EOF
+
+gawk '/^#=======/ {exit} {print}' output.log > throughput.dat
+gawk '/pctl/ {out=1; next} out {if (/^$/ || /^#/) out=0; else print}' output.log > latency.dat
+
+rps=$( gawk '!/^#/ && NF > 0 { a[NR] = $8; count++ } 
+END { 
+    if (count <= 4) { print 0; exit }
+    for (i = 3; i <= count - 2; i++) {
+        # Преобразование "22k0" в число 22000
+        val = a[i+2] # +2 так как NR учитывает и строки с комментариями
+        gsub(/k/, "000", val); gsub(/M/, "000000", val);
+        sum += val
+    }
+    print sum / (count - 4)
+}' throughput.dat )
+
+echo "RPS Average: ${rps}"
+
+
+echo "gnuplot plot_latency.gp"

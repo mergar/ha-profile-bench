@@ -1,0 +1,2 @@
+#!/bin/sh
+echo "show table dynamic_limits" | socat stdio unix-connect:/tmp/haproxy.sock

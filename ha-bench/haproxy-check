@@ -1,0 +1,17 @@
+#!/bin/sh
+#haproxy -c -f /usr/local/etc/haproxy.conf && haproxy -f /usr/local/etc/haproxy.conf -p /var/run/haproxy.pid -sf $(cat /var/run/haproxy.pid)
+haproxy -c -f /usr/local/etc/haproxy.conf
+ret=$?
+if [ ${ret} -ne 0 ]; then
+	echo "failed" 
+	echo "haproxy -c -f /usr/local/etc/haproxy.conf"
+	exit ${ret}
+fi
+
+sync
+echo "show servers state" | socat stdio unix-connect:/tmp/haproxy.sock > /tmp/haproxy.state
+sync
+sleep 1
+kill -USR2 $( cat /var/run/haproxy.pid )
+
+service cpuset0 start

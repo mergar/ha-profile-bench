@@ -1,0 +1,29 @@
+global
+    cpu-map 1 2
+    maxconn 200000
+    daemon
+    stats socket /tmp/haproxy.sock mode 660 level admin
+
+defaults
+    mode http
+    option http-keep-alive
+    timeout connect 5s
+    timeout client  30s
+    timeout server  30s
+
+frontend http_in
+    # Во FreeBSD параметр называется 'interface' или 'tfo', 
+    # а reuseport включается через 'shards' или глобально. 
+    # Но для одного процесса достаточно просто bind.
+    bind 127.0.0.1:80
+
+    # В HAProxy tcp-nodelay задается через 'tcp-request content' 
+    # или наследуется. Для HTTP режима он активен по умолчанию.
+    default_backend nginx_static
+
+backend nginx_static
+    balance static-rr
+    option http-keep-alive
+    server s1 127.0.0.1:8080 maxconn 100000
+    # Попробуйте заменить на сокет для скорости:
+    #server s1 /tmp/nginx.sock maxconn 100000

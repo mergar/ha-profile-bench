@@ -1,0 +1,7 @@
+#!/bin/sh
+# Получить общую статистику (RPS, ошибки, сессии)
+#echo "show stat" | socat stdio /tmp/haproxy.sock
+
+# Узнать, на что тратится время (внутренние счетчики)
+echo "show info" | socat stdio /tmp/haproxy.sock
+
