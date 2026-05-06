@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROCESS_MAP="syslogd:0 cron:0 sshd:0 nginx:1"
+PROCESS_MAP="syslogd:0 cron:0 nginx:1"
 
 # В Linux вывод ps идентичен, используем ту же логику
 ps ax -o pid,ucomm | while read _pid _ucomm; do
