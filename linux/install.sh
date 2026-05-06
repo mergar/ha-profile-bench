@@ -2,7 +2,7 @@
 
 [ ! -d /etc/nginx -a ! -h /etc/nginx ] && ln -s /root/ha-profile-bench/linux/etc/nginx /etc/nginx
 
-dnf install -y haproxy nginx curl make gcc openssl-devel.x86_64
+dnf install -y haproxy nginx curl make gcc openssl-devel.x86_64 dtrace
 #toxiproxy-cli toxiproxy-server httping
 systemctl nginx enable
 systemctl haproxy enable
