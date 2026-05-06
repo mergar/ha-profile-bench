@@ -1,2 +1,4 @@
 h1load/h1load
 h1load/h1load.o
+ha-bench/*.dat
+ha-bench/*.log

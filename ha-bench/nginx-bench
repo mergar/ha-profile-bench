@@ -2,6 +2,15 @@
 #taskset --cpu-list 4-31 h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P https://100.77.64.2:8080
 #h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P http://127.0.0.1:80/index.html
 
+case $( uname -s ) in
+	Linux)
+		AWK_CMD="awk"
+		;;
+	FreeBSD)
+		AWK_CMD="gawk"
+		;;
+esac
+
 man()
 {
 cat<<EOF
@@ -50,7 +59,7 @@ truncate -s0 output.log
 #cpuset -l 3 h1load -d 60 -t 1 -c 400 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
 
 # RPS Average: 886398
-cpuset -l 3 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
+cpuset -l 2 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
 
 
 cat<<EOF
@@ -73,10 +82,10 @@ cat<<EOF
 Хотите ли вы также проверить максимальное количество новых соединений в секунду (CPS), или фокус именно на «чистом» RPS внутри открытых сессий?
 EOF
 
-gawk '/^#=======/ {exit} {print}' output.log > throughput.dat
-gawk '/pctl/ {out=1; next} out {if (/^$/ || /^#/) out=0; else print}' output.log > latency.dat
+${AWK_CMD} '/^#=======/ {exit} {print}' output.log > throughput.dat
+${AWK_CMD} '/pctl/ {out=1; next} out {if (/^$/ || /^#/) out=0; else print}' output.log > latency.dat
 
-rps=$( gawk '!/^#/ && NF > 0 { a[NR] = $8; count++ } 
+rps=$( ${AWK_CMD} '!/^#/ && NF > 0 { a[NR] = $8; count++ } 
 END { 
     if (count <= 4) { print 0; exit }
     for (i = 3; i <= count - 2; i++) {
