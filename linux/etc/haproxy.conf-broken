@@ -1,0 +1,67 @@
+global
+    #cpu-map 1 2		# already set via cpuset
+    maxconn 200000
+    daemon
+    tune.bufsize 16384
+    tune.idletimer 0
+    stats socket /tmp/haproxy.sock mode 660 level admin
+
+    # Это заставляет планировщик HAProxy отдавать приоритет обработке уже активных задач перед приемом новых соединений, что часто повышает RPS за счет лучшего использования кэша L1.
+    tune.sched.low-latency on
+
+    # современный HAProxy (с версии 2.0+) уходит от модели «много воркеров» (nbproc) в сторону «один воркер + много потоков» (nbthread).
+    nbproc 1  # Количество процессов-воркеров (по умолчанию 1)
+    nbthread 4 # Один воркер будет использовать 4 потока (threads)
+
+defaults
+    mode http
+    option http-keep-alive
+    timeout connect 5s
+    timeout client  30s
+    timeout server  30s
+
+    # Это аналог tcp_nodelay, который заставляет HAProxy отправлять данные немедленно.
+    option http-no-delay
+
+
+frontend http_in
+    maxconn 2000  # вместо текущих 300
+
+    # Во FreeBSD параметр называется 'interface' или 'tfo', 
+    # а reuseport включается через 'shards' или глобально. 
+    # Но для одного процесса достаточно просто bind.
+    bind 127.0.0.1:80
+
+    # В HAProxy tcp-nodelay задается через 'tcp-request content' 
+    # или наследуется. Для HTTP режима он активен по умолчанию.
+    default_backend nginx_static
+    option http-no-delay
+
+backend nginx_static
+    balance static-rr
+    option http-keep-alive
+    server s1 127.0.0.1:8080 maxconn 100000
+    # Попробуйте заменить на сокет для скорости:
+    #server s1 /tmp/nginx.sock maxconn 100000
+    option http-no-delay
+
+listen stats
+    bind *:9000
+    mode http
+    stats enable
+    stats uri /haproxy_stats
+    stats refresh 5s
+    #stats admin if LOCALHOST # Позволяет менять статус серверов через браузер
+
+# 
+peers m-w_reload
+    # В режиме master-worker это позволяет воркерам 
+    # передавать таблицы друг другу локально
+    peer local 127.0.0.1:10000
+
+backend dynamic_limits
+    # Указываем, что таблица должна синхронизироваться через peers
+    stick-table type ip size 100k expire 30s store http_req_rate(10s) peers m-w_reload
+
+    acl abuse http_req_rate(dynamic_limits) gt 100
+    http-request deny if abuse
