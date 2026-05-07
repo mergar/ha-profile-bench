@@ -2,16 +2,9 @@
 #taskset --cpu-list 4-31 h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P https://100.77.64.2:8080
 #h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P http://127.0.0.1:80/index.html
 
-PLATFORM=$( uname -s )
-
-case ${PLATFORM} in
-	Linux)
-		AWK_CMD="awk"
-		;;
-	FreeBSD)
-		AWK_CMD="gawk"
-		;;
-esac
+set -e
+. /root/ha-profile-bench/ha-bench/bench.subr
+set +e
 
 man()
 {
