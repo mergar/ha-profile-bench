@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PROCESS_MAP="syslogd:0 cron:0 nginx:1"
+PROCESS_MAP="syslogd:0 cron:0 inetd:0 node_exporter:0 nginx:1"
 
 # Пропускаем заголовок ps через tail или просто проверяем, что _pid числовой
 ps ax -o pid,ucomm | while read _pid _ucomm; do
