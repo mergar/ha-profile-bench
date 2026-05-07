@@ -1,6 +1,6 @@
 #!/bin/sh
 #taskset --cpu-list 4-31 h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P https://100.77.64.2:8080
-#h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P http://127.0.0.1:80/index.html
+#h1load -d 300 -s 300 -R 120000 -n -1 -c 65000 -t 28 -v -l -S -P http://127.0.0.4:80/index.html
 
 set -e
 . /root/ha-profile-bench/ha-bench/bench.subr
@@ -40,36 +40,29 @@ SSL options:
 EOF
 }
 
-#h1load -d 60 -s 60 -R 12 -n -1 -c 1 -t 1 -v -l -S -P http://127.0.0.1:80/index.html
+#h1load -d 60 -s 60 -R 12 -n -1 -c 1 -t 1 -v -l -S -P http://127.0.0.4:80/index.html
 
 
-#h1load -d 60 -t 6 -c 300 -r 1000 -P -S -l http://127.0.0.1:80/index.html > output.log
+#h1load -d 60 -t 6 -c 300 -r 1000 -P -S -l http://127.0.0.4:80/index.html > output.log
 truncate -s0 output.log
 
 # на -с 500 начинают возникать err
-#cpuset -l 3 h1load -d 60 -t 1 -c 500 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
-#cpuset -l 3 h1load -d 400 -t 1 -c 400 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
+#cpuset -l 3 h1load -d 60 -t 1 -c 500 -r 1000 -P -S -l http://127.0.0.4:8080/index.html | tee -a  output.log
+#cpuset -l 3 h1load -d 400 -t 1 -c 400 -r 1000 -P -S -l http://127.0.0.4:8080/index.html | tee -a  output.log
 
 # RPS Average: 886398
-#cpuset -l 3 h1load -d 60 -t 1 -c 400 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
+#cpuset -l 3 h1load -d 60 -t 1 -c 400 -r 1000 -P -S -l http://127.0.0.4:8080/index.html | tee -a  output.log
 
 # RPS Average: 886398
 case "${PLATFORM}" in
 	FreeBSD)
 		# не для multi-cpu
-		#cpuset -l 2 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
+		#cpuset -l 2 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.4:8080/index.html | tee -a  output.log
 		date
-#		h1load -d 600 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
-#		h1load -d 60 -t 1 -c 300 -r -1 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
-# эмперически выяснилось что -c 32 оптимально для 1 ядра, вероятно каждое доп ядро будет -c +32
-		h1load -d 600 -t 1 -c 30 -r -1 -P -S -l http://127.0.0.1:8080/index.html | tee -a  output.log
-
-# аналог с wrk:
-# wrk -t1 -c32 -d60s http://127.0.0.1:8080/index.html
-
+		h1load -d 600 -t 1 -c 300 -r -1 -P -S -l http://127.0.0.4:8080/index.html | tee -a  output.log
 		;;
 	Linux)
-		taskset -c 2 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.1:8080/index.html | tee -a output.log
+		taskset -c 2 h1load -d 60 -t 1 -c 300 -r 1000 -P -S -l http://127.0.0.4:8080/index.html | tee -a output.log
 		;;
 esac
 
