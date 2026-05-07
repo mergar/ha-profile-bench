@@ -83,22 +83,22 @@ cat<<EOF
 Хотите ли вы также проверить максимальное количество новых соединений в секунду (CPS), или фокус именно на «чистом» RPS внутри открытых сессий?
 EOF
 
-${AWK_CMD} '/^#=======/ {exit} {print}' output.log > throughput.dat
+#${AWK_CMD} '/^#=======/ {exit} {print}' output.log > throughput.dat
 ${AWK_CMD} '/pctl/ {out=1; next} out {if (/^$/ || /^#/) out=0; else print}' output.log > latency.dat
 
-rps=$( ${AWK_CMD} '!/^#/ && NF > 0 { a[NR] = $8; count++ } 
-END { 
-    if (count <= 4) { print 0; exit }
-    for (i = 3; i <= count - 2; i++) {
-        # Преобразование "22k0" в число 22000
-        val = a[i+2] # +2 так как NR учитывает и строки с комментариями
-        gsub(/k/, "000", val); gsub(/M/, "000000", val);
-        sum += val
-    }
-    print sum / (count - 4)
-}' throughput.dat )
-
-echo "RPS Average: ${rps}"
-
+#rps=$( ${AWK_CMD} '!/^#/ && NF > 0 { a[NR] = $8; count++ } 
+#END { 
+#    if (count <= 4) { print 0; exit }
+#    for (i = 3; i <= count - 2; i++) {
+#        # Преобразование "22k0" в число 22000
+#        val = a[i+2] # +2 так как NR учитывает и строки с комментариями
+#        gsub(/k/, "000", val); gsub(/M/, "000000", val);
+#        sum += val
+#    }
+#    print sum / (count - 4)
+#}' throughput.dat )
+#
+#echo "RPS Average: ${rps}"
+#
 
 echo "gnuplot plot_latency.gp"
